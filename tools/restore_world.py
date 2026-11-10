@@ -662,7 +662,7 @@ def restore_world(source, destination, compact=False):
             for directory in {p.parent for p in converted | set(cqs_files)}:
                 (temporary / directory / MARKER).write_text(
                     "This directory contains ChunkSqueeze compact region format 1/2 (.cqs).\n"
-                    "Requires ChunkSqueeze 0.2+ for format 1; shared states require 0.4.0+, exact sections require 0.5.0+.\n"
+                    "Requires ChunkSqueeze 0.2+ for format 1; format 2 requires 0.4.0+; exact sections require 0.5.0+.\n"
                     "Before uninstalling, stop the server and run restore_world.py SOURCE DEST\n"
                     "to create a standard MCA world, then use the restored copy.\n",
                     encoding="utf-8")

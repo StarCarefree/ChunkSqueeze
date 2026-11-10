@@ -14,8 +14,6 @@ import net.minecraft.server.level.ChunkMap;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.storage.*;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -24,13 +22,11 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
 
-@GameTestHolder("chunksqueeze")
-@PrefixGameTestTemplate(false)
 public final class StorageGameTests {
     private static final RegionStorageInfo INFO = new RegionStorageInfo("chunksqueeze-test", Level.OVERWORLD, "chunk");
     private static final ChunkPos POS = new ChunkPos(0, 0);
 
-    @GameTest(template = "empty", timeoutTicks = 400)
+    @GameTest(template = "chunksqueeze:empty", timeoutTicks = 400)
     public static void storageRoundTrip(GameTestHelper helper) throws Exception {
         check(cn.star.chunksqueeze.storage.BackgroundReencoder.current() != null, "Background lifecycle did not start");
         boolean compactEnabled = Config.compactRegions;
@@ -89,7 +85,7 @@ public final class StorageGameTests {
         }
     }
 
-    @GameTest(template = "empty", timeoutTicks = 400)
+    @GameTest(template = "chunksqueeze:empty", timeoutTicks = 400)
     public static void compactStorageRoundTrip(GameTestHelper helper) throws Exception {
         boolean compactEnabled = Config.compactRegions;
         boolean sectorSaving = Config.requireSectorSaving;

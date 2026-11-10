@@ -1,27 +1,16 @@
 package cn.star.chunksqueeze;
 
-import net.neoforged.fml.event.config.ModConfigEvent;
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.fabricmc.loader.api.FabricLoader;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.Properties;
 
 public final class Config {
-    private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
-    private static final ModConfigSpec.IntValue MINIMUM_SAVING = BUILDER
-            .comment("Minimum compressed bytes saved per chunk.")
-            .defineInRange("minimumSavingBytes", 128, 0, 1048576);
-    private static final ModConfigSpec.BooleanValue REQUIRE_SECTOR = BUILDER
-            .comment("Only encode chunks that save an allocation unit.")
-            .define("requireSectorSaving", true);
-    private static final ModConfigSpec.BooleanValue COMPACT_REGIONS = BUILDER
-            .comment("Use compact files for new regions. Existing MCA regions stay unchanged.")
-            .define("compactRegions", true);
-    private static final ModConfigSpec.IntValue MIGRATION_THREADS = BUILDER
-            .comment("Migration workers. 0 = auto; bounded by CPU and heap.")
-            .defineInRange("migrationThreads", 0, 0, 16);
-    private static final ModConfigSpec.IntValue BACKGROUND_THREADS = BUILDER
-            .comment("Background workers. 0 = auto by CPU and heap, up to 2.")
-            .defineInRange("backgroundThreads", 0, 0, 2);
-    public static final ModConfigSpec SPEC = BUILDER.build();
-
     public static volatile boolean compactRegions = true;
     public static volatile int migrationThreads = 0;
     public static volatile int backgroundThreads = 0;
@@ -30,12 +19,57 @@ public final class Config {
 
     private Config() {}
 
-    public static void onLoad(ModConfigEvent event) {
-        if (event.getConfig().getSpec() != SPEC) return;
-        compactRegions = COMPACT_REGIONS.get();
-        migrationThreads = MIGRATION_THREADS.get();
-        backgroundThreads = BACKGROUND_THREADS.get();
-        minimumSaving = MINIMUM_SAVING.get();
-        requireSectorSaving = REQUIRE_SECTOR.get();
+    public static void load() {
+        load(FabricLoader.getInstance().getConfigDir().resolve("chunksqueeze.properties"));
+    }
+
+    static void load(Path path) {
+        try {
+            if (Files.notExists(path)) {
+                Files.createDirectories(path.toAbsolutePath().getParent());
+                Files.writeString(path, """
+                        # Minimum compressed bytes saved per chunk (0..1048576).
+                        minimumSavingBytes=128
+                        # Only encode chunks that save an allocation unit.
+                        requireSectorSaving=true
+                        # Use compact files for new regions. Existing MCA files stay unchanged.
+                        compactRegions=true
+                        # Migration workers (0..16). 0 = auto, bounded by CPU and heap.
+                        migrationThreads=0
+                        # Background workers (0..2). 0 = auto, bounded by CPU and heap.
+                        backgroundThreads=0
+                        """, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+            }
+            Properties values = new Properties();
+            try (Reader input = Files.newBufferedReader(path, StandardCharsets.UTF_8)) { values.load(input); }
+            int saving = integer(values, "minimumSavingBytes", 128, 0, 1048576);
+            boolean sector = bool(values, "requireSectorSaving", true);
+            boolean compact = bool(values, "compactRegions", true);
+            int migration = integer(values, "migrationThreads", 0, 0, 16);
+            int background = integer(values, "backgroundThreads", 0, 0, 2);
+            minimumSaving = saving;
+            requireSectorSaving = sector;
+            compactRegions = compact;
+            migrationThreads = migration;
+            backgroundThreads = background;
+        } catch (IOException | IllegalArgumentException failure) {
+            throw new IllegalStateException("Cannot load ChunkSqueeze configuration: " + path, failure);
+        }
+    }
+
+    private static int integer(Properties values, String key, int fallback, int minimum, int maximum) {
+        String text = values.getProperty(key);
+        if (text == null) return fallback;
+        int value = Integer.parseInt(text.trim());
+        if (value < minimum || value > maximum) throw new IllegalArgumentException(key + " must be in " + minimum + ".." + maximum);
+        return value;
+    }
+
+    private static boolean bool(Properties values, String key, boolean fallback) {
+        String text = values.getProperty(key);
+        if (text == null) return fallback;
+        if (text.trim().equalsIgnoreCase("true")) return true;
+        if (text.trim().equalsIgnoreCase("false")) return false;
+        throw new IllegalArgumentException(key + " must be true or false");
     }
 }

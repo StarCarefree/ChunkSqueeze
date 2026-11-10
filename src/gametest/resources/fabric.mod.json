@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "chunksqueeze_gametest",
+  "version": "1.0.0",
+  "name": "ChunkSqueeze GameTests",
+  "environment": "server",
+  "entrypoints": {
+    "fabric-gametest": [
+      "cn.star.chunksqueeze.gametest.StorageGameTests",
+      "cn.star.chunksqueeze.gametest.MigrationGameTests"
+    ]
+  },
+  "depends": {
+    "chunksqueeze": "*",
+    "fabric-gametest-api-v1": "*"
+  }
+}

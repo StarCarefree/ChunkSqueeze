@@ -1,5 +1,7 @@
 # 0.6.0 Background Re-encoding: Local Validation and Performance
 
+> Historical NeoForge source-version results. These measurements and validation counts do not apply to the Fabric 1.21.1 port. The Fabric port has not been validated with ATM10.
+
 Date: 2026-11-10. Status: local validation and testing with the ATM10 production server distribution are complete. See [ATM_BACKGROUND_0.6.0_EN.md](ATM_BACKGROUND_0.6.0_EN.md) for server performance and memory measurements during active work.
 
 ## Save Behavior

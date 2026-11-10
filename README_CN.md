@@ -1,8 +1,10 @@
-# ChunkSqueeze
+# ChunkSqueeze — Fabric 1.21.1
 
 **无损压缩 Minecraft 地形区块，减少世界存档占用。**
 
 ChunkSqueeze 面向模组整合包和长期运行的世界，通过紧凑区域存储、区域共享方块状态字典和完整区段去重，减少重复数据与磁盘分配浪费。保留方块位置、完整属性、光照、生物群系及其他模组的 NBT 数据，不依赖运行时方块注册表编号。
+
+**版本 0.6.1 · Java 21 · Fabric Loader 0.16.10+ · Fabric API 0.102.1+1.21.1**
 
 ## 主要功能
 
@@ -32,20 +34,22 @@ ChunkSqueeze 面向模组整合包和长期运行的世界，通过紧凑区域�
 
 ## 配置
 
-配置文件：`config/chunksqueeze-common.toml`。
+配置文件：`config/chunksqueeze.properties`，UTF-8，首次启动自动生成。
 
-```toml
+```properties
 # Minimum compressed bytes saved per chunk.
-minimumSavingBytes = 128
+minimumSavingBytes=128
 # Only encode chunks that save an allocation unit.
-requireSectorSaving = true
+requireSectorSaving=true
 # Use compact files for new regions.
-compactRegions = true
+compactRegions=true
 # Migration workers. 0 = auto; bounded by CPU and heap.
-migrationThreads = 0
+migrationThreads=0
 # Background workers. 0 = auto; up to 2.
-backgroundThreads = 0
+backgroundThreads=0
 ```
+
+五个配置项均在启动时读取，编辑后需要重启。`minimumSavingBytes` 范围 0–1048576，`migrationThreads` 范围 0–16，`backgroundThreads` 范围 0–2；布尔项接受 `true` 或 `false`。非法值会报配置错误并阻止启动，缺少的键使用上述默认值。本版不读取 NeoForge TOML 配置。
 
 默认配置即可使用。迁移线程自动模式最多 8 个，后台线程最多 2 个，均受 CPU 和最大堆限制。后台线程配置在重启后生效。关闭 `compactRegions` 只影响新区域的创建，不会让已有 CQS 切回 MCA。
 
@@ -73,8 +77,8 @@ python -I -X utf8 tools/restore_world.py "D:/紧凑世界" "D:/标准世界"
 
 ## 验证与性能
 
-- [后台重编码与固定样本测试](doc/BACKGROUND_REENCODING_0.6.0.md)
-- [ATM10 正式服务端对照](doc/ATM_BACKGROUND_0.6.0.md)
+- [后台重编码与固定样本测试（NeoForge 历史数据）](doc/BACKGROUND_REENCODING_0.6.0.md)
+- [ATM10 正式服务端对照（NeoForge 历史数据）](doc/ATM_BACKGROUND_0.6.0.md)
 - [NBT 编码规范](doc/FORMAT.md) · [CQS 区域格式](doc/COMPACT_FORMAT.md)
 
 ## 许可证

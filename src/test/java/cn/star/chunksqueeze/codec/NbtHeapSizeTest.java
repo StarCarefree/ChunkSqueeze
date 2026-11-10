@@ -48,9 +48,26 @@ class NbtHeapSizeTest {
             assertMatchesRead(root);
         }
         assertEquals(130, NbtSize.payload(StringTag.valueOf("a".repeat(128)), 0, Long.MAX_VALUE));
-        assertEquals(166, NbtHeapSize.payload(StringTag.valueOf("a".repeat(128)), 0, Long.MAX_VALUE));
+        assertEquals(292, NbtHeapSize.payload(StringTag.valueOf("a".repeat(128)), 0, Long.MAX_VALUE));
         assertThrows(UTFDataFormatException.class,
                 () -> NbtHeapSize.payload(StringTag.valueOf("a".repeat(65536)), 0, Long.MAX_VALUE));
+    }
+
+    @Test
+    void vanillaFactoriesAndSerializationRetainMinecraftNumericNormalization() throws Exception {
+        assertEquals(0, Float.floatToRawIntBits(FloatTag.valueOf(-0.0f).getAsFloat()));
+        assertEquals(0L, Double.doubleToRawLongBits(DoubleTag.valueOf(-0.0).getAsDouble()));
+        CompoundTag root = new CompoundTag();
+        root.putFloat("float", -0.0f);
+        root.putDouble("double", -0.0);
+        root.putFloat("floatNaN", Float.intBitsToFloat(0x7fc00001));
+        root.putDouble("doubleNaN", Double.longBitsToDouble(0x7ff8000000000001L));
+        CompoundTag loaded = NbtIo.read(new DataInputStream(new ByteArrayInputStream(ChunkCodec.serialize(root))),
+                NbtAccounter.unlimitedHeap());
+        assertEquals(0, Float.floatToRawIntBits(loaded.getFloat("float")));
+        assertEquals(0L, Double.doubleToRawLongBits(loaded.getDouble("double")));
+        assertEquals(Float.floatToIntBits(Float.NaN), Float.floatToRawIntBits(loaded.getFloat("floatNaN")));
+        assertEquals(Double.doubleToLongBits(Double.NaN), Double.doubleToRawLongBits(loaded.getDouble("doubleNaN")));
     }
 
     @Test

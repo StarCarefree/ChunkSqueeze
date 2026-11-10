@@ -341,7 +341,7 @@ class SectionCodecTest {
     @Test
     void heapQuotaPreventsCacheAndPoolCopiesBeforeAndAfterReload() throws Exception {
         CompoundTag heavy = new CompoundTag();
-        heavy.put("strings", strings(1_500_000));
+        heavy.put("strings", strings(1_600_000));
         RegionStateDictionary dictionary = dictionary(new ListTag(), list(heavy));
         byte[] snapshot = dictionary.compressed();
         CompoundTag next = new CompoundTag();

@@ -1,5 +1,7 @@
 # 0.6.0 ATM10 Background Re-encoding Validation
 
+> Historical NeoForge source-version results. These measurements and validation counts do not apply to the Fabric 1.21.1 port. The Fabric port has not been validated with ATM10.
+
 Date: 2026-11-10. Testing used an isolated ATM10 8.5 production server distribution with Minecraft 1.21.1, NeoForge 21.1.265, and Java 21.0.10. It used the original 0.6.0 JAR that had passed local validation. Neither the production code nor the JAR changed during this test sequence.
 
 ## Correctness

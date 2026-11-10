@@ -15,7 +15,7 @@ final class NbtHeapSize {
         return EXACT_ACCOUNTING_SUPPORTED;
     }
 
-    // 对齐本地 NeoForge 的 TagType.load；parse 和 sizeInBytes 的字符串计额不同。
+    // 对齐 Fabric 原版 TagType.load，字符串按 UTF-16 字符数计额。
     static long root(CompoundTag root, long limit) throws IOException {
         try {
             long usage = exactRoot(root, EXACT_ACCOUNTING_SUPPORTED ? limit : Long.MAX_VALUE);
@@ -27,7 +27,6 @@ final class NbtHeapSize {
 
     private static long exactRoot(CompoundTag root, long limit) throws IOException {
         NbtAccounter accounter = NbtAccounter.create(limit);
-        accounter.accountBytes(7); // 根类型、空名称与分配开销。
         account(root, accounter);
         return accounter.getUsage();
     }
@@ -104,7 +103,7 @@ final class NbtHeapSize {
         return decoded.equals(original);
     }
 
-    // 启动时逐类型核对运行中的 MC；其他 NeoForge 版本计额变化时保留原解析保障。
+    // 启动时逐类型核对运行中的 MC；计额变化时保留原解析保障。
     private static boolean checkRuntime() {
         Tag[] values = {
                 ByteTag.valueOf((byte) 1), ShortTag.valueOf((short) 2), IntTag.valueOf(3), LongTag.valueOf(4),
@@ -189,13 +188,11 @@ final class NbtHeapSize {
                     if (entry == null || entry.getId() == Tag.TAG_END) {
                         throw new IOException("Invalid NBT compound entry");
                     }
-                    accounter.accountBytes(2);
+                    accounter.accountBytes(28);
                     accountUtf(key, accounter);
-                    accounter.accountBytes(4);
                     account(entry, accounter);
                     accounter.accountBytes(36);
                 }
-                accounter.accountBytes(2);
             } finally {
                 accounter.popDepth();
             }
@@ -211,6 +208,6 @@ final class NbtHeapSize {
             bytes += c >= 1 && c <= 0x7f ? 1 : c <= 0x7ff ? 2 : 3;
             if (bytes > 65535) throw new UTFDataFormatException("NBT string exceeds modified UTF-8 limit");
         }
-        accounter.accountBytes(2L + bytes);
+        accounter.accountBytes(2L * text.length());
     }
 }

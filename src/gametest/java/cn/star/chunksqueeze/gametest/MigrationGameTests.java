@@ -14,8 +14,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.storage.IOWorker;
 import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -26,13 +24,11 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.DeflaterOutputStream;
 
-@GameTestHolder("chunksqueeze")
-@PrefixGameTestTemplate(false)
 public final class MigrationGameTests {
     private static final RegionStorageInfo INFO = new RegionStorageInfo("migration-test", Level.OVERWORLD, "chunk");
     private static final ChunkPos POS = new ChunkPos(0, 0);
 
-    @GameTest(template = "empty", batch = "migration-storage", timeoutTicks = 400)
+    @GameTest(template = "chunksqueeze:empty", batch = "migration-storage", timeoutTicks = 400)
     public static void cachedStorageSwitchesWithoutLosingQueuedWrites(GameTestHelper helper) throws Exception {
         Path folder = Files.createTempDirectory("chunksqueeze-live-migration-");
         CompoundTag first = tag(1);
@@ -89,7 +85,7 @@ public final class MigrationGameTests {
         }
     }
 
-    @GameTest(template = "empty", batch = "migration-command", timeoutTicks = 120000)
+    @GameTest(template = "chunksqueeze:empty", batch = "migration-command", timeoutTicks = 120000)
     public static void commandBlocksAdmissionAndReturnsToNormal(GameTestHelper helper) throws Exception {
         var server = helper.getLevel().getServer();
         var source = server.createCommandSourceStack();

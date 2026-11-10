@@ -1,13 +1,14 @@
 package cn.star.chunksqueeze.storage;
 
+import cn.star.chunksqueeze.compat.NbtAccounter;
+import cn.star.chunksqueeze.compat.NbtAccounterException;
+
 import cn.star.chunksqueeze.Config;
 import cn.star.chunksqueeze.codec.ChunkCodec;
 import cn.star.chunksqueeze.codec.RegionStateDictionary;
 import cn.star.chunksqueeze.codec.SectionCodec;
 import cn.star.chunksqueeze.migration.MigrationGate;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtAccounter;
-import net.minecraft.nbt.NbtAccounterException;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.minecraft.util.FastBufferedInputStream;

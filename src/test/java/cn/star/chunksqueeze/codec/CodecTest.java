@@ -1,5 +1,7 @@
 package cn.star.chunksqueeze.codec;
 
+import cn.star.chunksqueeze.compat.NbtAccounter;
+
 import net.minecraft.nbt.*;
 import org.junit.jupiter.api.Test;
 
@@ -165,8 +167,8 @@ class CodecTest {
     }
 
     @Test
-    void javaDepthLimitCountsTheRootContainer() throws Exception {
-        for (int children : new int[]{511, 512}) {
+    void nativeDepthLimitAndCustomEncodingLimitAreDistinct() throws Exception {
+        for (int children : new int[]{511, 512, 513}) {
             CompoundTag root = new CompoundTag();
             CompoundTag current = root;
             for (int i = 0; i < children; i++) {
@@ -175,11 +177,14 @@ class CodecTest {
                 current = child;
             }
             byte[] bytes = ChunkCodec.serialize(root);
-            if (children == 511) {
+            if (children <= 512) {
                 assertNotNull(NbtIo.read(new java.io.DataInputStream(new java.io.ByteArrayInputStream(bytes)), NbtAccounter.unlimitedHeap()));
             } else {
                 assertThrows(RuntimeException.class, () -> NbtIo.read(new java.io.DataInputStream(new java.io.ByteArrayInputStream(bytes)), NbtAccounter.unlimitedHeap()));
             }
+            if (children == 511) assertTrue(NbtHeapSize.root(root, Long.MAX_VALUE) > 0);
+            else assertThrows(cn.star.chunksqueeze.compat.NbtAccounterException.class,
+                    () -> NbtHeapSize.root(root, Long.MAX_VALUE));
         }
     }
 

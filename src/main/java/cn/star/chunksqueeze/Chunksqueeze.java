@@ -7,16 +7,17 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.commands.Commands;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.network.chat.Component;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ModConfig;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
-import net.neoforged.neoforge.event.server.ServerStoppingEvent;
-import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.server.ServerAboutToStartEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
 import org.slf4j.Logger;
 
 @Mod(Chunksqueeze.MODID)
@@ -24,17 +25,18 @@ public final class Chunksqueeze {
     public static final String MODID = "chunksqueeze";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public Chunksqueeze(IEventBus modEventBus, ModContainer container) {
-        container.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+    public Chunksqueeze() {
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC);
         modEventBus.addListener(Config::onLoad);
-        NeoForge.EVENT_BUS.addListener(this::registerCommands);
-        NeoForge.EVENT_BUS.addListener(this::beforeTick);
-        NeoForge.EVENT_BUS.addListener((ServerAboutToStartEvent event) -> {
+        MinecraftForge.EVENT_BUS.addListener(this::registerCommands);
+        MinecraftForge.EVENT_BUS.addListener(this::beforeTick);
+        MinecraftForge.EVENT_BUS.addListener((ServerAboutToStartEvent event) -> {
             BackgroundReencoder.start(Config.backgroundThreads);
             LOGGER.info("ChunkSqueeze {}", BackgroundReencoder.status());
         });
-        NeoForge.EVENT_BUS.addListener((ServerStoppingEvent event) -> stopStorageWorkers(event.getServer()));
-        NeoForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> {
+        MinecraftForge.EVENT_BUS.addListener((ServerStoppingEvent event) -> stopStorageWorkers(event.getServer()));
+        MinecraftForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> {
             try { stopStorageWorkers(event.getServer()); }
             finally { MigrationService.stopped(event.getServer()); }
         });
@@ -47,7 +49,8 @@ public final class Chunksqueeze {
         finally { MigrationService.stopAndAwait(server); }
     }
 
-    private void beforeTick(ServerTickEvent.Pre event) {
+    private void beforeTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.START) return;
         StorageGuard.checkServer();
         MigrationService.tick(event.getServer());
     }

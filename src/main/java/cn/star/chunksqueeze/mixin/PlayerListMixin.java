@@ -6,7 +6,6 @@ import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.players.PlayerList;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -29,7 +28,7 @@ public abstract class PlayerListMixin {
     }
 
     @Inject(method = "placeNewPlayer", at = @At("HEAD"), cancellable = true)
-    private void chunksqueeze$guardFinalAdmission(Connection connection, ServerPlayer player, CommonListenerCookie cookie, CallbackInfo ci) {
+    private void chunksqueeze$guardFinalAdmission(Connection connection, ServerPlayer player, CallbackInfo ci) {
         Component reason = MigrationService.rejection(server);
         if (reason != null) {
             // 最终入口再检查，直接关闭连接，不向不确定的协议阶段发送数据包。

@@ -1,5 +1,8 @@
 package cn.star.chunksqueeze.codec;
 
+import cn.star.chunksqueeze.compat.NbtAccounter;
+import cn.star.chunksqueeze.compat.NbtAccounterException;
+
 import net.minecraft.nbt.*;
 
 import java.io.*;

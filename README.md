@@ -1,5 +1,7 @@
 # ChunkSqueeze
 
+**Forge 1.20.1 edition · Version 0.6.1 · Java 17**
+
 [简体中文](README_CN.md)
 
 **Lossless compression for Minecraft terrain chunks to reduce world save size.**
@@ -75,8 +77,8 @@ Do not modify world files with external programs while the server is running. If
 
 ## Validation and Performance
 
-- [Background re-encoding and fixed-sample tests](doc/BACKGROUND_REENCODING_0.6.0_EN.md)
-- [ATM10 production server comparison](doc/ATM_BACKGROUND_0.6.0_EN.md)
+- [Background re-encoding and fixed-sample tests (NeoForge reference)](doc/BACKGROUND_REENCODING_0.6.0_EN.md)
+- [ATM10 production server comparison (NeoForge reference)](doc/ATM_BACKGROUND_0.6.0_EN.md)
 - [NBT encoding specification](doc/FORMAT.md) · [CQS region format](doc/COMPACT_FORMAT.md)
 
 ## License

@@ -1,5 +1,7 @@
 package cn.star.chunksqueeze.codec;
 
+import cn.star.chunksqueeze.compat.NbtAccounter;
+import cn.star.chunksqueeze.compat.NbtAccounterException;
 import net.minecraft.nbt.*;
 
 import java.io.*;
@@ -15,7 +17,7 @@ final class NbtHeapSize {
         return EXACT_ACCOUNTING_SUPPORTED;
     }
 
-    // 对齐本地 NeoForge 的 TagType.load；parse 和 sizeInBytes 的字符串计额不同。
+    // 对齐 Forge 1.20.1 的 TagType.load；parse 和 sizeInBytes 的字符串计额不同。
     static long root(CompoundTag root, long limit) throws IOException {
         try {
             long usage = exactRoot(root, EXACT_ACCOUNTING_SUPPORTED ? limit : Long.MAX_VALUE);
@@ -41,14 +43,24 @@ final class NbtHeapSize {
         } catch (UnsupportedTagException custom) {
             // 自定义 write 必须按实际写出的标准 NBT 重新计额，不能依据其父类估算。
         }
+        return measuredPayload(tag, parentDepth, limit);
+    }
+
+    private static long measuredPayload(Tag tag, int parentDepth, long limit) throws IOException {
+        validateDepth(tag, new NbtAccounter(Long.MAX_VALUE, 512 - parentDepth));
         var bytes = new ByteArrayOutputStream();
         tag.write(new DataOutputStream(bytes));
         if (bytes.size() != NbtSize.payload(tag, parentDepth, ChunkCodec.MAX_BYTES)) {
             throw new IOException("Custom NBT serialization does not match its tag structure");
         }
-        accounter = new NbtAccounter(limit, 512 - parentDepth);
+        NbtAccounter accounter = NbtAccounter.create(limit);
         var in = new DataInputStream(new ByteArrayInputStream(bytes.toByteArray()));
-        Tag decoded = TagTypes.getType(tag.getId()).load(in, accounter);
+        Tag decoded;
+        try {
+            decoded = TagTypes.getType(tag.getId()).load(in, parentDepth, accounter);
+        } catch (RuntimeException failure) {
+            throw NbtAccounterException.normalize(failure);
+        }
         if (in.available() != 0 || !sameStructure(decoded, tag)) {
             throw new IOException("Custom NBT serialization does not match its tag structure");
         }
@@ -63,6 +75,7 @@ final class NbtHeapSize {
     }
 
     private static long measuredRoot(CompoundTag root, long limit) throws IOException {
+        validateDepth(root, NbtAccounter.unlimitedHeap());
         var bytes = new ByteArrayOutputStream();
         NbtIo.write(root, new DataOutputStream(bytes));
         if (bytes.size() != NbtSize.rootWithout(root, null, Long.MAX_VALUE)) {
@@ -70,11 +83,31 @@ final class NbtHeapSize {
         }
         NbtAccounter accounter = NbtAccounter.create(limit);
         var in = new DataInputStream(new ByteArrayInputStream(bytes.toByteArray()));
-        CompoundTag decoded = NbtIo.read(in, accounter);
+        CompoundTag decoded;
+        try {
+            decoded = NbtIo.read(in, accounter);
+        } catch (RuntimeException failure) {
+            throw NbtAccounterException.normalize(failure);
+        }
         if (in.available() != 0 || !sameStructure(decoded, root)) {
             throw new IOException("Custom NBT serialization does not match its tag structure");
         }
         return accounter.getUsage();
+    }
+
+    // 原生 load 从 0 起算且只拒绝 depth > 512；直接计额仍最多允许 512 个容器。
+    private static void validateDepth(Tag tag, NbtAccounter accounter) {
+        if (!(tag instanceof CompoundTag) && !(tag instanceof ListTag)) return;
+        accounter.pushDepth();
+        try {
+            if (tag instanceof CompoundTag compound) {
+                for (String key : compound.getAllKeys()) validateDepth(compound.get(key), accounter);
+            } else if (tag instanceof ListTag list) {
+                for (int i = 0; i < list.size(); i++) validateDepth(list.get(i), accounter);
+            }
+        } finally {
+            accounter.popDepth();
+        }
     }
 
     private static boolean sameStructure(Tag decoded, Tag original) {
@@ -104,7 +137,7 @@ final class NbtHeapSize {
         return decoded.equals(original);
     }
 
-    // 启动时逐类型核对运行中的 MC；其他 NeoForge 版本计额变化时保留原解析保障。
+    // 启动时逐类型核对运行中的 MC；计额变化时保留原解析保障。
     private static boolean checkRuntime() {
         Tag[] values = {
                 ByteTag.valueOf((byte) 1), ShortTag.valueOf((short) 2), IntTag.valueOf(3), LongTag.valueOf(4),
@@ -116,7 +149,13 @@ final class NbtHeapSize {
         try {
             CompoundTag empty = new CompoundTag();
             if (exactRoot(empty, Long.MAX_VALUE) != measuredRoot(empty, Long.MAX_VALUE)) return false;
+            NbtAccounter end = NbtAccounter.unlimitedHeap();
+            account(EndTag.INSTANCE, end);
+            if (end.getUsage() != measuredPayload(EndTag.INSTANCE, 0, Long.MAX_VALUE)) return false;
             for (Tag value : values) {
+                NbtAccounter payload = NbtAccounter.unlimitedHeap();
+                account(value, payload);
+                if (payload.getUsage() != measuredPayload(value, 0, Long.MAX_VALUE)) return false;
                 CompoundTag root = new CompoundTag();
                 root.put("name\u0000\u0080ࠀ🌍", value);
                 if (exactRoot(root, Long.MAX_VALUE) != measuredRoot(root, Long.MAX_VALUE)) return false;
@@ -191,6 +230,7 @@ final class NbtHeapSize {
                     }
                     accounter.accountBytes(2);
                     accountUtf(key, accounter);
+                    accounter.accountBytes(28L + 2L * key.length()); // 原生 CompoundTag.load 的名称对象开销。
                     accounter.accountBytes(4);
                     account(entry, accounter);
                     accounter.accountBytes(36);

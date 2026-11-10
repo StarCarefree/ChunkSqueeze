@@ -1,11 +1,12 @@
 package cn.star.chunksqueeze.migration;
 
+import cn.star.chunksqueeze.compat.NbtAccounter;
+
 import cn.star.chunksqueeze.codec.ChunkCodec;
 import cn.star.chunksqueeze.codec.RegionStateDictionary;
 import cn.star.chunksqueeze.storage.CompactRegion;
 import com.google.gson.GsonBuilder;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 
 import java.io.ByteArrayInputStream;

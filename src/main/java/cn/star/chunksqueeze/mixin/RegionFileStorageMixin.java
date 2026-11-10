@@ -1,5 +1,8 @@
 package cn.star.chunksqueeze.mixin;
 
+import cn.star.chunksqueeze.compat.NbtAccounter;
+import cn.star.chunksqueeze.compat.StorageKindAccess;
+
 import cn.star.chunksqueeze.Config;
 import cn.star.chunksqueeze.codec.ChunkCodec;
 import cn.star.chunksqueeze.codec.SectionCodec;
@@ -11,7 +14,6 @@ import cn.star.chunksqueeze.storage.StorageGuard;
 import cn.star.chunksqueeze.storage.RegionIntegrity;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.StreamTagVisitor;
 import net.minecraft.nbt.Tag;
@@ -20,7 +22,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
 import net.minecraft.world.level.chunk.storage.RegionFile;
 import net.minecraft.world.level.chunk.storage.RegionFileVersion;
-import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -37,9 +38,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
 @Mixin(RegionFileStorage.class)
-public abstract class RegionFileStorageMixin implements MigrationStorageAccess {
+public abstract class RegionFileStorageMixin implements MigrationStorageAccess, StorageKindAccess {
     @Shadow @Final private Path folder;
-    @Shadow @Final private RegionStorageInfo info;
+    @Unique private String chunksqueeze$kind = "";
     @Shadow @Final private Long2ObjectLinkedOpenHashMap<RegionFile> regionCache;
     @Shadow public abstract CompoundTag read(ChunkPos pos) throws IOException;
     @Shadow private RegionFile getRegionFile(ChunkPos pos) throws IOException { throw new AssertionError(); }
@@ -47,9 +48,11 @@ public abstract class RegionFileStorageMixin implements MigrationStorageAccess {
     @Unique private boolean chunksqueeze$closed;
     @Unique private CompactRegionStore chunksqueeze$compact;
 
-    @Inject(method = "<init>", at = @At("RETURN"))
-    private void chunksqueeze$register(RegionStorageInfo storageInfo, Path directory, boolean sync, CallbackInfo ci) {
-        if (!info.type().startsWith("chunk")) return;
+    @Override
+    public void chunksqueeze$setStorageKind(String kind) {
+        if (!chunksqueeze$kind.isEmpty()) throw new IllegalStateException("Storage kind already assigned");
+        chunksqueeze$kind = kind;
+        if (!kind.startsWith("chunk")) return;
         try { MigrationGate.register(this); }
         catch (IOException | RuntimeException failure) { throw StorageGuard.fail(folder.toString(), failure); }
     }
@@ -78,7 +81,7 @@ public abstract class RegionFileStorageMixin implements MigrationStorageAccess {
     @Inject(method = "getRegionFile", at = @At(value = "NEW", target = "net/minecraft/world/level/chunk/storage/RegionFile"))
     private void chunksqueeze$validateHeader(ChunkPos pos, CallbackInfoReturnable<RegionFile> cir) {
         StorageGuard.check();
-        if (!info.type().startsWith("chunk")) return;
+        if (!chunksqueeze$kind.startsWith("chunk")) return;
         try { RegionIntegrity.validateHeader(folder.resolve("r." + pos.getRegionX() + "." + pos.getRegionZ() + ".mca")); }
         catch (IOException | RuntimeException failure) { throw StorageGuard.fail(folder + " " + pos, failure); }
     }
@@ -86,13 +89,13 @@ public abstract class RegionFileStorageMixin implements MigrationStorageAccess {
     @Inject(method = "write", at = @At("HEAD"), cancellable = true)
     private void chunksqueeze$write(ChunkPos pos, CompoundTag original, CallbackInfo ci) {
         StorageGuard.check();
-        if (!info.type().startsWith("chunk")) return;
+        if (!chunksqueeze$kind.startsWith("chunk")) return;
         try (MigrationGate.Lease ignored = MigrationGate.region(folder, pos.getRegionX(), pos.getRegionZ())) {
             if (chunksqueeze$closed) throw new IOException("Region storage is closed");
             CompactRegionStore compact = chunksqueeze$store();
             boolean existingCompact = compact.owns(pos);
-            if (existingCompact && !info.type().equals("chunk")) throw new IOException("Export compact regions before region recreation");
-            boolean useCompact = existingCompact || (Config.compactRegions && info.type().equals("chunk") && !compact.hasMca(pos));
+            if (existingCompact && !chunksqueeze$kind.equals("chunk")) throw new IOException("Export compact regions before region recreation");
+            boolean useCompact = existingCompact || (Config.compactRegions && chunksqueeze$kind.equals("chunk") && !compact.hasMca(pos));
             if (useCompact) {
                 if (original != null || compact.owns(pos)) {
                     chunksqueeze$markFormat();
@@ -119,8 +122,7 @@ public abstract class RegionFileStorageMixin implements MigrationStorageAccess {
     private CompoundTag chunksqueeze$encode(CompoundTag original, boolean compact) throws IOException {
         if (original == null) return null;
         if (original.contains(ChunkCodec.KEY) || original.contains(SectionCodec.KEY)) throw new IOException("Encoded NBT reached the write API");
-        if (!original.contains("sections", Tag.TAG_LIST) || !original.contains("Status", Tag.TAG_STRING)
-                || (!compact && RegionFileVersion.getSelected() != RegionFileVersion.VERSION_DEFLATE)) return original;
+        if (!original.contains("sections", Tag.TAG_LIST) || !original.contains("Status", Tag.TAG_STRING)) return original;
         int unit = compact ? 512 : 4096;
         int overhead = compact ? 0 : 5;
         ChunkCodec.Result result = ChunkCodec.encode(original,
@@ -145,16 +147,16 @@ public abstract class RegionFileStorageMixin implements MigrationStorageAccess {
     @Inject(method = "read", at = @At("HEAD"), cancellable = true)
     private void chunksqueeze$decode(ChunkPos pos, CallbackInfoReturnable<CompoundTag> cir) {
         StorageGuard.check();
-        if (!info.type().startsWith("chunk")) return;
+        if (!chunksqueeze$kind.startsWith("chunk")) return;
         try (MigrationGate.Lease ignored = MigrationGate.region(folder, pos.getRegionX(), pos.getRegionZ())) {
             if (chunksqueeze$closed) throw new IOException("Region storage is closed");
             CompactRegionStore compact = chunksqueeze$store();
             CompoundTag stored;
             if (compact.hasOpenRegion(pos) || (!regionCache.containsKey(ChunkPos.asLong(pos.getRegionX(), pos.getRegionZ())) && compact.owns(pos))) {
-                if (!info.type().equals("chunk")) throw new IOException("Export compact regions before region recreation");
+                if (!chunksqueeze$kind.equals("chunk")) throw new IOException("Export compact regions before region recreation");
                 stored = compact.read(pos);
             } else if (!regionCache.containsKey(ChunkPos.asLong(pos.getRegionX(), pos.getRegionZ()))
-                    && Config.compactRegions && info.type().equals("chunk") && !compact.hasMca(pos)) {
+                    && Config.compactRegions && chunksqueeze$kind.equals("chunk") && !compact.hasMca(pos)) {
                 stored = null;
             } else {
                 RegionFile region = getRegionFile(pos);
@@ -182,7 +184,7 @@ public abstract class RegionFileStorageMixin implements MigrationStorageAccess {
     @Inject(method = "scanChunk", at = @At("HEAD"), cancellable = true)
     private void chunksqueeze$scan(ChunkPos pos, StreamTagVisitor visitor, CallbackInfo ci) throws IOException {
         StorageGuard.check();
-        if (!info.type().startsWith("chunk")) return;
+        if (!chunksqueeze$kind.startsWith("chunk")) return;
         CompoundTag tag = read(pos);
         if (tag != null) tag.acceptAsRoot(visitor);
         ci.cancel();
@@ -190,7 +192,7 @@ public abstract class RegionFileStorageMixin implements MigrationStorageAccess {
 
     @Inject(method = "flush", at = @At("HEAD"), cancellable = true)
     private void chunksqueeze$flush(CallbackInfo ci) {
-        if (!info.type().startsWith("chunk")) return;
+        if (!chunksqueeze$kind.startsWith("chunk")) return;
         try (MigrationGate.Lease ignored = MigrationGate.access()) {
             if (chunksqueeze$closed) throw new IOException("Region storage is closed");
             if (chunksqueeze$compact != null && !StorageGuard.isFailed()) chunksqueeze$compact.flush();
@@ -201,7 +203,7 @@ public abstract class RegionFileStorageMixin implements MigrationStorageAccess {
 
     @Inject(method = "close", at = @At("HEAD"), cancellable = true)
     private void chunksqueeze$close(CallbackInfo ci) throws IOException {
-        if (!info.type().startsWith("chunk")) return;
+        if (!chunksqueeze$kind.startsWith("chunk")) return;
         try (MigrationGate.Lease ignored = MigrationGate.access()) {
             if (!chunksqueeze$closed) {
                 chunksqueeze$closed = true;

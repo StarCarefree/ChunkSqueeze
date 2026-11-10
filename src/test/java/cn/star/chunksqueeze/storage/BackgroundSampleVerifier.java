@@ -1,5 +1,7 @@
 package cn.star.chunksqueeze.storage;
 
+import cn.star.chunksqueeze.compat.NbtAccounter;
+
 import cn.star.chunksqueeze.codec.ChunkCodec;
 import cn.star.chunksqueeze.codec.SectionCodec;
 import cn.star.chunksqueeze.migration.McaSnapshot;

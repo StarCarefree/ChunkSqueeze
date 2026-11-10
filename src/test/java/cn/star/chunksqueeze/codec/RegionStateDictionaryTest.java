@@ -1,5 +1,7 @@
 package cn.star.chunksqueeze.codec;
 
+import cn.star.chunksqueeze.compat.NbtAccounter;
+
 import net.minecraft.nbt.*;
 import org.junit.jupiter.api.Test;
 

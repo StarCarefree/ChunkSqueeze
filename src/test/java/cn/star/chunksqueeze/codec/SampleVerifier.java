@@ -1,5 +1,7 @@
 package cn.star.chunksqueeze.codec;
 
+import cn.star.chunksqueeze.compat.NbtAccounter;
+
 import com.google.gson.GsonBuilder;
 import net.minecraft.nbt.*;
 

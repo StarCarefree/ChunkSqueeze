@@ -13,9 +13,8 @@ import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.storage.IOWorker;
-import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraftforge.gametest.GameTestHolder;
+import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -29,10 +28,10 @@ import java.util.zip.DeflaterOutputStream;
 @GameTestHolder("chunksqueeze")
 @PrefixGameTestTemplate(false)
 public final class MigrationGameTests {
-    private static final RegionStorageInfo INFO = new RegionStorageInfo("migration-test", Level.OVERWORLD, "chunk");
+    private static final String INFO = "chunk";
     private static final ChunkPos POS = new ChunkPos(0, 0);
 
-    @GameTest(template = "empty", batch = "migration-storage", timeoutTicks = 400)
+    @GameTest(templateNamespace = "chunksqueeze", template = "empty", batch = "migration-storage", timeoutTicks = 400)
     public static void cachedStorageSwitchesWithoutLosingQueuedWrites(GameTestHelper helper) throws Exception {
         Path folder = Files.createTempDirectory("chunksqueeze-live-migration-");
         CompoundTag first = tag(1);
@@ -89,7 +88,7 @@ public final class MigrationGameTests {
         }
     }
 
-    @GameTest(template = "empty", batch = "migration-command", timeoutTicks = 120000)
+    @GameTest(templateNamespace = "chunksqueeze", template = "empty", batch = "migration-command", timeoutTicks = 120000)
     public static void commandBlocksAdmissionAndReturnsToNormal(GameTestHelper helper) throws Exception {
         var server = helper.getLevel().getServer();
         var source = server.createCommandSourceStack();
@@ -104,7 +103,7 @@ public final class MigrationGameTests {
         check(dispatcher.execute("chunksqueeze migrate", source) == 1, "Command did not start");
         check(MigrationService.rejection(server).equals(server.getPlayerList().canPlayerLogin(address, profile)), "Maintenance allowed login");
         // 未安装最后一道入口拦截时，null 玩家会进入原版方法并立即失败。
-        server.getPlayerList().placeNewPlayer(new Connection(PacketFlow.SERVERBOUND), null, null);
+        server.getPlayerList().placeNewPlayer(new Connection(PacketFlow.SERVERBOUND), null);
         check(server.getPlayerList().getPlayerCount() == 0, "Final admission guard added a player");
         check(dispatcher.execute("chunksqueeze migrate cancel", source) == 1, "Waiting migration could not cancel");
         check(MigrationService.rejection(server) == null, "Cancelled maintenance stayed locked");
@@ -160,6 +159,6 @@ public final class MigrationGameTests {
     }
     private static void check(boolean condition, String message) { if (!condition) throw new AssertionError(message); }
     private static final class TestWorker extends IOWorker {
-        TestWorker(Path folder) { super(INFO, folder, true); }
+        TestWorker(Path folder) { super(folder, true, INFO); }
     }
 }

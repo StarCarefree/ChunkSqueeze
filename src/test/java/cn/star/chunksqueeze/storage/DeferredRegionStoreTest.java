@@ -194,6 +194,7 @@ class DeferredRegionStoreTest {
         CountDownLatch snapshotTaken = new CountDownLatch(1), release = new CountDownLatch(1);
         AtomicBoolean first = new AtomicBoolean(true);
         AtomicReference<Throwable> failure = new AtomicReference<>();
+        ExecutorService foreground = Executors.newSingleThreadExecutor();
         try (BackgroundReencoder worker = new BackgroundReencoder(1, 128, 0, failure::set,
                 (store, key, region, slots, options, cancelled) -> {
                     if (!first.compareAndSet(true, false)) {
@@ -207,8 +208,7 @@ class DeferredRegionStoreTest {
                     var prepared = store.prepareReencode(snapshot, context, options);
                     assertFalse(store.publishReencode(key, prepared, options, cancelled));
                 });
-             CompactRegionStore store = new CompactRegionStore(folder, worker);
-             ExecutorService foreground = Executors.newSingleThreadExecutor()) {
+             CompactRegionStore store = new CompactRegionStore(folder, worker)) {
             try {
                 store.writeDeferred(ZERO, fixture(0), OPTIONS);
                 assertTrue(snapshotTaken.await(5, TimeUnit.SECONDS));
@@ -224,6 +224,9 @@ class DeferredRegionStoreTest {
             assertTrue(worker.awaitIdle(10000));
             assertNull(failure.get());
             assertEquals(123, decoded(store, ZERO).getInt("mod:revision"));
+        } finally {
+            foreground.shutdown();
+            assertTrue(foreground.awaitTermination(10, TimeUnit.SECONDS));
         }
     }
 

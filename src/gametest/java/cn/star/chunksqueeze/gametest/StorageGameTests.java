@@ -14,8 +14,8 @@ import net.minecraft.server.level.ChunkMap;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.storage.*;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraftforge.gametest.GameTestHolder;
+import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -27,10 +27,10 @@ import java.util.concurrent.atomic.AtomicReference;
 @GameTestHolder("chunksqueeze")
 @PrefixGameTestTemplate(false)
 public final class StorageGameTests {
-    private static final RegionStorageInfo INFO = new RegionStorageInfo("chunksqueeze-test", Level.OVERWORLD, "chunk");
+    private static final String INFO = "chunk";
     private static final ChunkPos POS = new ChunkPos(0, 0);
 
-    @GameTest(template = "empty", timeoutTicks = 400)
+    @GameTest(templateNamespace = "chunksqueeze", template = "empty", timeoutTicks = 400)
     public static void storageRoundTrip(GameTestHelper helper) throws Exception {
         check(cn.star.chunksqueeze.storage.BackgroundReencoder.current() != null, "Background lifecycle did not start");
         boolean compactEnabled = Config.compactRegions;
@@ -70,7 +70,7 @@ public final class StorageGameTests {
             }
             Config.minimumSaving = 0;
             Path entities = Files.createDirectories(folder.resolve("entities"));
-            RegionStorageInfo entityInfo = new RegionStorageInfo("chunksqueeze-test", Level.OVERWORLD, "entities");
+            String entityInfo = "entities";
             try (TestWorker worker = new TestWorker(entities, entityInfo)) {
                 worker.store(POS, original).join();
                 worker.synchronize(true).join();
@@ -89,7 +89,7 @@ public final class StorageGameTests {
         }
     }
 
-    @GameTest(template = "empty", timeoutTicks = 400)
+    @GameTest(templateNamespace = "chunksqueeze", template = "empty", timeoutTicks = 400)
     public static void compactStorageRoundTrip(GameTestHelper helper) throws Exception {
         boolean compactEnabled = Config.compactRegions;
         boolean sectorSaving = Config.requireSectorSaving;
@@ -139,7 +139,7 @@ public final class StorageGameTests {
             }
             check(Files.exists(legacy.resolve("r.0.0.mca")) && !Files.exists(legacy.resolve("r.0.0.cqs")), "Legacy MCA was migrated online");
             Path recreated = folder.resolve("recreated");
-            try (TestWorker worker = new TestWorker(recreated, INFO.withTypeSuffix("target"))) { worker.store(POS, original).join(); }
+            try (TestWorker worker = new TestWorker(recreated, "chunk-target")) { worker.store(POS, original).join(); }
             check(Files.exists(recreated.resolve("r.0.0.mca")), "World recreation target was unexpectedly compact");
             Files.delete(CompactRegion.ownerPath(compact));
             try (TestWorker worker = new TestWorker(folder, INFO)) {
@@ -163,7 +163,7 @@ public final class StorageGameTests {
         CompoundTag bad = ChunkCodec.encode(original, new ChunkCodec.Options(0, false)).tag();
         check(bad.contains(ChunkCodec.KEY), "Fixture did not compress");
         bad.getCompound(ChunkCodec.KEY).putInt("version", 999);
-        try (RegionFile region = new RegionFile(INFO, folder.resolve("r.0.0.mca"), folder, true)) {
+        try (RegionFile region = new RegionFile(folder.resolve("r.0.0.mca"), folder, true)) {
             try (var out = region.getChunkDataOutputStream(POS)) { NbtIo.write(bad, out); }
             region.flush();
         }
@@ -266,7 +266,7 @@ public final class StorageGameTests {
     }
 
     private static CompoundTag readRaw(Path folder) throws Exception {
-        try (RegionFile region = new RegionFile(INFO, folder.resolve("r.0.0.mca"), folder, true);
+        try (RegionFile region = new RegionFile(folder.resolve("r.0.0.mca"), folder, true);
              var input = region.getChunkDataInputStream(POS)) {
             if (input == null) throw new AssertionError("Missing test chunk");
             return NbtIo.read(input);
@@ -311,6 +311,6 @@ public final class StorageGameTests {
     }
 
     private static final class TestWorker extends IOWorker {
-        TestWorker(Path folder, RegionStorageInfo info) { super(info, folder, true); }
+        TestWorker(Path folder, String info) { super(folder, true, info); }
     }
 }

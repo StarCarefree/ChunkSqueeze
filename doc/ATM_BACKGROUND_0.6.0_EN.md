@@ -1,5 +1,7 @@
 # 0.6.0 ATM10 Background Re-encoding Validation
 
+> Historical measurements from the NeoForge 1.21.1 edition. These are not performance or ATM10 validation results for this Forge 1.20.1 port.
+
 Date: 2026-11-10. Testing used an isolated ATM10 8.5 production server distribution with Minecraft 1.21.1, NeoForge 21.1.265, and Java 21.0.10. It used the original 0.6.0 JAR that had passed local validation. Neither the production code nor the JAR changed during this test sequence.
 
 ## Correctness

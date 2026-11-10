@@ -11,7 +11,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
-import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -33,7 +32,7 @@ public final class SaveBenchmark {
     private static final int ROUNDS = 3;
     private static final String REVISION = "benchmark:revision";
     private static final ChunkCodec.Options OPTIONS = new ChunkCodec.Options(128, true);
-    private static final RegionStorageInfo INFO = new RegionStorageInfo("save-benchmark", Level.OVERWORLD, "chunk");
+    private static final String INFO = "chunk";
     private static final Constructor<RegionFileStorage> NATIVE;
     private static final Method WRITE;
     private static final Method FLUSH;
@@ -44,7 +43,7 @@ public final class SaveBenchmark {
 
     static {
         try {
-            NATIVE = RegionFileStorage.class.getDeclaredConstructor(RegionStorageInfo.class, Path.class, boolean.class);
+            NATIVE = RegionFileStorage.class.getDeclaredConstructor(Path.class, boolean.class);
             WRITE = RegionFileStorage.class.getDeclaredMethod("write", ChunkPos.class, CompoundTag.class);
             FLUSH = RegionFileStorage.class.getDeclaredMethod("flush");
             NATIVE.setAccessible(true);
@@ -77,7 +76,7 @@ public final class SaveBenchmark {
 
     private static Store open(Path folder, Backend backend) throws Exception {
         if (backend != Backend.cqs) {
-            RegionFileStorage storage = NATIVE.newInstance(INFO, folder, backend.sync);
+            RegionFileStorage storage = NATIVE.newInstance(folder, backend.sync);
             return new Store() {
                 public void write(ChunkPos pos, CompoundTag tag) throws Exception { WRITE.invoke(storage, pos, tag); }
                 public CompoundTag read(ChunkPos pos) throws IOException { return storage.read(pos); }
@@ -179,7 +178,7 @@ public final class SaveBenchmark {
         return new Input(region, chunks);
     }
 
-    private static long allocated() { return THREAD.getThreadAllocatedBytes(Thread.currentThread().threadId()); }
+    private static long allocated() { return THREAD.getThreadAllocatedBytes(Thread.currentThread().getId()); }
     private static long percentile(long[] sorted, double p) { return sorted[(int) Math.ceil(sorted.length * p) - 1]; }
     private static Map<String, Object> options(Backend backend) {
         return backend == Backend.cqs ? Map.of("minimumSaving", 128, "requireSectorSaving", true)

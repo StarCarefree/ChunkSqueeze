@@ -1,5 +1,7 @@
 package cn.star.chunksqueeze.migration;
 
+import cn.star.chunksqueeze.compat.NbtAccounter;
+
 import cn.star.chunksqueeze.codec.ChunkCodec;
 import cn.star.chunksqueeze.codec.RegionStateDictionary;
 import cn.star.chunksqueeze.storage.CompactRegion;
@@ -32,7 +34,7 @@ public final class MigrationBenchmark {
             targets.add(new Target(source, folder, x, z));
         }
         // 预热编码与解码，不包含在迁移计时内。
-        McaSnapshot warm = McaSnapshot.capture(targets.getFirst().folder, targets.getFirst().x, targets.getFirst().z);
+        McaSnapshot warm = McaSnapshot.capture(targets.get(0).folder, targets.get(0).x, targets.get(0).z);
         for (int repeat = 0; repeat < 3; repeat++) {
             for (var chunk : warm.chunks().subList(0, Math.min(64, warm.chunks().size()))) {
                 CompoundTag tag = inflate(chunk.payload(), chunk.codec());

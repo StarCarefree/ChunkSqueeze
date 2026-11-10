@@ -73,7 +73,7 @@ class MigrationParallelTest {
             try {
                 preparedTogether.countDown(); assertTrue(preparedTogether.await(5, TimeUnit.SECONDS));
                 MigrationGate.exclusive(() -> MigrationTransaction.publish(prepared, cancel::get, stage -> {
-                    if (target == targets.getFirst() && stage == MigrationTransaction.Stage.MCA_MOVED) throw new IOException("injected publication failure");
+                    if (target == targets.get(0) && stage == MigrationTransaction.Stage.MCA_MOVED) throw new IOException("injected publication failure");
                 }));
             } finally {
                 if (!Files.exists(MigrationTransaction.pendingPath(target.folder, 0, 0))) MigrationTransaction.discard(prepared);
@@ -86,7 +86,7 @@ class MigrationParallelTest {
             assertNotEquals(old, Files.exists(target.folder.resolve("r.0.0.cqs")));
             if (old) {
                 var snapshot = McaSnapshot.capture(target.folder, 0, 0);
-                try (var input = new DataInputStream(new InflaterInputStream(new ByteArrayInputStream(snapshot.chunks().getFirst().payload())))) {
+                try (var input = new DataInputStream(new InflaterInputStream(new ByteArrayInputStream(snapshot.chunks().get(0).payload())))) {
                     assertEquals(target.expected, NbtIo.read(input));
                 }
             } else try (CompactRegion region = CompactRegion.open(target.folder.resolve("r.0.0.cqs"), 0, 0, false)) {

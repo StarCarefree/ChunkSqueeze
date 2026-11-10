@@ -10,7 +10,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
-import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 
 import java.io.*;
 import java.lang.management.ManagementFactory;
@@ -19,7 +18,7 @@ import java.nio.file.*;
 import java.util.*;
 
 public final class LoadBenchmark {
-    private static final RegionStorageInfo INFO = new RegionStorageInfo("load-benchmark", Level.OVERWORLD, "chunk");
+    private static final String INFO = "chunk";
     private static final Constructor<RegionFileStorage> NATIVE;
     private static final com.sun.management.ThreadMXBean THREAD =
             (com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean();
@@ -27,7 +26,7 @@ public final class LoadBenchmark {
     private static volatile long checksum;
     static {
         try {
-            NATIVE = RegionFileStorage.class.getDeclaredConstructor(RegionStorageInfo.class, Path.class, boolean.class);
+            NATIVE = RegionFileStorage.class.getDeclaredConstructor(Path.class, boolean.class);
             NATIVE.setAccessible(true);
         } catch (ReflectiveOperationException failure) { throw new ExceptionInInitializerError(failure); }
     }
@@ -39,7 +38,7 @@ public final class LoadBenchmark {
     }
     private static Reader open(Region region, boolean compact) throws Exception {
         if (!compact) {
-            RegionFileStorage storage = NATIVE.newInstance(INFO, region.mca, false);
+            RegionFileStorage storage = NATIVE.newInstance(region.mca, false);
             return new Reader() {
                 public CompoundTag read(ChunkPos pos) throws IOException { return storage.read(pos); }
                 public void close() throws IOException { storage.close(); }
@@ -94,7 +93,7 @@ public final class LoadBenchmark {
         sink = tag;
         checksum += tag.getInt("xPos") * 31L + tag.getInt("zPos");
     }
-    private static long allocated() { return THREAD.getThreadAllocatedBytes(Thread.currentThread().threadId()); }
+    private static long allocated() { return THREAD.getThreadAllocatedBytes(Thread.currentThread().getId()); }
     private static long[] gc() {
         long count = 0, millis = 0;
         for (var bean : ManagementFactory.getGarbageCollectorMXBeans()) {

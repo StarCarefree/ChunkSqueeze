@@ -1,5 +1,7 @@
 # ChunkSqueeze
 
+**Forge 1.20.1 版本 · 版本号 0.6.1 · Java 17**
+
 **无损压缩 Minecraft 地形区块，减少世界存档占用。**
 
 ChunkSqueeze 面向模组整合包和长期运行的世界，通过紧凑区域存储、区域共享方块状态字典和完整区段去重，减少重复数据与磁盘分配浪费。保留方块位置、完整属性、光照、生物群系及其他模组的 NBT 数据，不依赖运行时方块注册表编号。
@@ -73,8 +75,8 @@ python -I -X utf8 tools/restore_world.py "D:/紧凑世界" "D:/标准世界"
 
 ## 验证与性能
 
-- [后台重编码与固定样本测试](doc/BACKGROUND_REENCODING_0.6.0.md)
-- [ATM10 正式服务端对照](doc/ATM_BACKGROUND_0.6.0.md)
+- [后台重编码与固定样本测试（NeoForge 历史数据）](doc/BACKGROUND_REENCODING_0.6.0.md)
+- [ATM10 正式服务端对照（NeoForge 历史数据）](doc/ATM_BACKGROUND_0.6.0.md)
 - [NBT 编码规范](doc/FORMAT.md) · [CQS 区域格式](doc/COMPACT_FORMAT.md)
 
 ## 许可证

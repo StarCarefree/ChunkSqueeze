@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ChunkMap.class)
 public abstract class ChunkMapMixin {
     @Inject(method = "handleChunkLoadFailure", at = @At("HEAD"))
-    private void chunksqueeze$preventRegeneration(Throwable failure, ChunkPos pos, CallbackInfoReturnable<ChunkAccess> cir) {
+    private void chunksqueeze$preventRegeneration(Throwable failure, ChunkPos pos, CallbackInfoReturnable<?> cir) {
         StorageGuard.fail("Chunk load failed at " + pos + "; refusing regeneration", failure);
         StorageGuard.checkServer();
     }

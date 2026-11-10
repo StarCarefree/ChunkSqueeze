@@ -1,5 +1,8 @@
 package cn.star.chunksqueeze.codec;
 
+import cn.star.chunksqueeze.compat.NbtAccounter;
+import cn.star.chunksqueeze.compat.NbtAccounterException;
+
 import net.minecraft.nbt.*;
 
 import java.io.*;
@@ -235,7 +238,7 @@ public final class ChunkCodec {
 
     // 候选仅在本次调用内读取；复制会被修改的容器壳，获选后统一深复制。
     static CompoundTag shell(CompoundTag original) {
-        CompoundTag shell = new CompoundTag(original.size());
+        CompoundTag shell = new CompoundTag();
         for (String key : original.getAllKeys()) shell.put(key, original.get(key));
         return shell;
     }

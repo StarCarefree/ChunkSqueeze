@@ -1,5 +1,7 @@
 # 0.6.0 Background Re-encoding: Local Validation and Performance
 
+> Historical measurements from the NeoForge 1.21.1 edition. These are not performance or ATM10 validation results for this Forge 1.20.1 port.
+
 Date: 2026-11-10. Status: local validation and testing with the ATM10 production server distribution are complete. See [ATM_BACKGROUND_0.6.0_EN.md](ATM_BACKGROUND_0.6.0_EN.md) for server performance and memory measurements during active work.
 
 ## Save Behavior

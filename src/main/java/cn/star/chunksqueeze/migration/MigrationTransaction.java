@@ -1,5 +1,8 @@
 package cn.star.chunksqueeze.migration;
 
+import cn.star.chunksqueeze.compat.NbtAccounter;
+import cn.star.chunksqueeze.compat.NbtAccounterException;
+
 import cn.star.chunksqueeze.codec.ChunkCodec;
 import cn.star.chunksqueeze.codec.RegionStateDictionary;
 import cn.star.chunksqueeze.codec.SectionCodec;

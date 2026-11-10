@@ -1,0 +1,9 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MPL-2.0"
+
+[[mods]]
+modId="chunksqueeze_genbench"
+version="1.0"
+displayName="Chunk generation benchmark"
+description="Independent dedicated-server generation benchmark."
